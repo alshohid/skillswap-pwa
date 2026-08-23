@@ -89,17 +89,38 @@ variations (`{data,meta}`, arrays, `amount|points|points_transferred`,
 
 - **Manifest** — standalone display, theme `#2563eb`, shortcuts for Browse/Create/Wallet.
 - **Icons** — generated PNGs (+ SVG) via a dependency-free rasteriser script.
-- **Service worker** (`public/sw.js`):
-  - navigations → network-first, cached per-route for offline reuse;
-  - `_next/static` + icons → cache-first (immutable);
-  - **API GET** → network-first with cache fallback (previously loaded tasks/profile stay readable offline);
-  - **API mutations → never queued or replayed.** Completing a task triggers a
-    server-side ACID point transfer; doing that blind offline would be wrong,
-    so offline mutations return an explicit `503` JSON error instead.
-- **Install prompt** card via `beforeinstallprompt` (7-day dismissal memory).
-- **Offline banner** appears whenever `navigator.onLine` flips to false.
+- **Service worker** — Workbox via **InjectManifest** (source: `src/sw.ts`,
+  generated artifact: `public/sw.js`, built by `scripts/build-sw.mjs` after
+  `next build`; never edit the generated file):
+  - **Precache** — app shell assets (`/_next/static/**`, icons, manifest,
+    `/offline.html`) with content-hash revisioning handled by Workbox;
+  - **Navigations** → NetworkFirst (4 s timeout, navigation preload enabled);
+    offline fallback is the precached `/offline.html` page — documents only;
+  - **API GET allowlist only** (`/tasks…`, `/transactions/me|/balance`) →
+    NetworkFirst (5 s timeout), HTTP-200-only, cached ≤ 10 min in
+    `skillswap-api-readonly-v1`. `/auth/*` and `/users/me` are **never** cached;
+  - **API mutations (POST/PUT/PATCH/DELETE)** → **NetworkOnly.** Never queued,
+    never replayed, never answered by the SW — completing a task triggers a
+    server-side ACID point transfer, and a real network error reaches the UI
+    untouched instead of any synthetic "offline" response;
+  - images/fonts → CacheFirst with bounded entries + expiration; everything
+    unmatched goes straight to the network (no global offline handler).
+- **Updates** — the new worker waits; a "New version available" card lets the
+  user Refresh (SKIP_WAITING + single reload). No blind `skipWaiting()`.
+- **Install prompt** card via `beforeinstallprompt` (7-day dismissal memory),
+  fully decoupled from service-worker logic.
+- **Offline banner** distinguishes browser-offline ("You're offline — showing
+  last synchronized data.") from server-unreachable ("Unable to reach SkillSwap
+  servers — retrying…"), using online/offline events plus a CORS-safe
+  reachability probe fed by real RTK Query failures.
 - The last known profile is cached in `localStorage`, so cold boots offline still
   render the dashboard shell.
+
+### Testing the PWA locally
+
+The SW registers in production builds only (`next build && npm start`). To get
+a clean slate while testing: DevTools → Application → Service Workers →
+*Unregister*, then Storage → *Clear site data*, and reload.
 
 ## Assumptions & backend gaps
 

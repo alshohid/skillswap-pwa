@@ -24,3 +24,7 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# generated service worker (built by scripts/build-sw.mjs after `next build`)
+/public/sw.js
+/.sw-tmp/

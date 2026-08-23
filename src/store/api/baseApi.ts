@@ -7,6 +7,7 @@ import {
 } from '@reduxjs/toolkit/query/react';
 import { API_URL, TOKEN_STORAGE_KEY } from '@/lib/constants';
 import { clearAuth } from '@/store/slices/authSlice';
+import { reportApiFailure, reportApiSuccess } from '@/lib/connectivity';
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_URL,
@@ -19,20 +20,22 @@ const rawBaseQuery = fetchBaseQuery({
   },
 });
 
-/** Endpoints where a 401 is an expected business result, not a dead session. */
-const AUTH_ENDPOINTS = ['/auth/login', '/auth/register'];
 
-/**
- * Base query with global 401 handling: any authenticated endpoint that comes
- * back unauthorized clears the local session and hard-navigates to /login
- * (a full navigation also resets the in-memory store cleanly).
- */
+const AUTH_ENDPOINTS = ['/auth/login', '/auth/register'];
 export const baseQuery: BaseQueryFn<
   string | FetchArgs,
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
   const result = await rawBaseQuery(args, api, extraOptions);
+
+  // Feed the connectivity banner: FETCH_ERROR means the fetch itself failed
+  // (offline / DNS / timeout) — any HTTP status means the server answered.
+  if (result.error?.status === 'FETCH_ERROR') {
+    reportApiFailure();
+  } else if (!result.error) {
+    reportApiSuccess();
+  }
 
   if (result.error?.status === 401) {
     const url = typeof args === 'string' ? args : args.url;

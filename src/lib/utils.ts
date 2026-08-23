@@ -102,8 +102,10 @@ export function getErrorMessage(
         : data?.message;
       if (apiMessage) return apiMessage;
       if (typeof data?.error === 'string') return data.error;
-      if (err.status === 503) {
-        return 'You are offline. Please try again when connected.';
+      if (err.status === 'FETCH_ERROR') {
+        // Network-level failure (offline, DNS, timeout). The service worker
+        // never fabricates responses, so this is always a real failure.
+        return 'Unable to reach the server. Check your connection and try again.';
       }
       if (err.status === 401) return 'Your session has expired. Please log in again.';
       if (err.status === 403) return 'You are not allowed to perform this action.';
