@@ -13,7 +13,11 @@ export function ServiceWorkerRegister() {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
 
     navigator.serviceWorker
-      .register(`/sw.js?api=${encodeURIComponent(API_URL)}`)
+      .register(`/sw.js?api=${encodeURIComponent(API_URL)}`, {
+        // Never serve sw.js itself from the HTTP cache — config changes
+        // (e.g. a new API base URL) must take effect immediately.
+        updateViaCache: 'none',
+      })
       .catch(() => {
         // Insecure context or unsupported browser — PWA features stay off.
       });

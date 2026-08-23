@@ -5,13 +5,19 @@
  *   - App shell / navigations ......... network-first, fall back to cache
  *   - Static assets (_next/static …) .. cache-first (immutable hashes)
  *   - API GET requests ................ network-first, cached for offline reads
- *   - API mutations (POST/PATCH/…) .... NEVER cached or queued — point
- *                                       transfers are server-authoritative ACID
- *                                       transactions and must not run blind.
+ *   - API mutations (POST/PATCH/…) .... NOT intercepted at all. The browser
+ *                                       performs them natively, so real
+ *                                       network/CORS/timeout errors surface
+ *                                       with their true status codes instead
+ *                                       of a synthetic "offline" 503.
+ *
+ * NOTE: never gate fetches on `navigator.onLine`. It only reports whether a
+ * network *interface* exists, not reachability — a false negative here used
+ * to turn every login into an instant 503 before any bytes left the browser.
  */
 /* eslint-disable no-restricted-globals */
 
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL_CACHE = `skillswap-shell-${VERSION}`;
 const ASSET_CACHE = `skillswap-assets-${VERSION}`;
 const API_CACHE = `skillswap-api-${VERSION}`;
@@ -76,11 +82,10 @@ async function trimCache(cacheName, maxEntries) {
   }
 }
 
-/** GET API: fresh when possible, cache when not. */
+/** GET API: fresh when possible, cached copy when the network fails. */
 async function apiNetworkFirst(request) {
   const cache = await caches.open(API_CACHE);
   try {
-    if (!self.navigator.onLine) throw new Error('offline');
     const response = await fetch(request);
     if (response.ok) {
       await cache.put(request, response.clone());
@@ -99,25 +104,10 @@ async function apiNetworkFirst(request) {
   }
 }
 
-/** Mutations: straight through, never stored. Offline → explicit 503. */
-async function mutationPassthrough(request) {
-  try {
-    if (!self.navigator.onLine) throw new Error('offline');
-    return await fetch(request);
-  } catch {
-    return jsonResponse(503, {
-      statusCode: 503,
-      message:
-        'You are offline. This action requires a connection and was not sent.',
-    });
-  }
-}
-
 /** Page navigations: try network, keep every visited route for offline reuse. */
 async function navigationNetworkFirst(request) {
   const cache = await caches.open(SHELL_CACHE);
   try {
-    if (!self.navigator.onLine) throw new Error('offline');
     const response = await fetch(request);
     if (response.ok) {
       await cache.put(request, response.clone());
@@ -170,17 +160,17 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
-  // Only take over GET navigations/resources and API traffic.
-  if (request.method !== 'GET' && !isApiUrl(new URL(request.url))) return;
+  // Mutations (POST/PUT/PATCH/DELETE) are NEVER intercepted. Not calling
+  // respondWith lets the browser perform the request natively — login,
+  // register and transfer calls go straight to the backend and genuine
+  // failures (CORS, timeouts, Render cold starts) surface with their real
+  // status codes instead of a fake "You are offline" 503.
+  if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
 
   if (isApiUrl(url)) {
-    if (request.method === 'GET') {
-      event.respondWith(apiNetworkFirst(request));
-    } else {
-      event.respondWith(mutationPassthrough(request));
-    }
+    event.respondWith(apiNetworkFirst(request));
     return;
   }
 
