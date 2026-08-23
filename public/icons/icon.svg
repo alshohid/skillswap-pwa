@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="SkillSwap logo">
+  <rect width="512" height="512" rx="112" fill="#2563eb"/>
+  <g fill="#ffffff">
+    <!-- up arrow -->
+    <path d="M170 118 L238 240 L102 240 Z"/>
+    <rect x="146" y="232" width="48" height="146" rx="12"/>
+    <!-- down arrow -->
+    <path d="M342 394 L274 272 L410 272 Z"/>
+    <rect x="318" y="134" width="48" height="146" rx="12"/>
+  </g>
+</svg>

@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand palette — clean SaaS blue on slate/zinc neutrals */
+  --color-brand: #2563eb;
+  --color-brand-dark: #1d4ed8;
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-danger: #dc2626;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  @apply bg-slate-50 font-sans text-zinc-950 antialiased;
+}
+
+/* iOS safe area for the bottom navigation */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Success celebration pop (task completion) */
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.75);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-pop-in {
+  animation: pop-in 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.35) both;
+}
+
+@keyframes rise {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise {
+  animation: rise 0.4s ease-out both;
+}
