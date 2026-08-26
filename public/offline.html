@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -19,8 +20,18 @@
       --card: #ffffff;
       --border: #e4e4e7;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
     body {
       display: flex;
       align-items: center;
@@ -33,6 +44,7 @@
       -webkit-font-smoothing: antialiased;
       text-align: center;
     }
+
     .card {
       width: 100%;
       max-width: 26rem;
@@ -42,6 +54,7 @@
       border-radius: 1.25rem;
       box-shadow: 0 8px 30px rgba(24, 24, 27, 0.06);
     }
+
     .mark {
       display: inline-flex;
       align-items: center;
@@ -53,8 +66,20 @@
       color: #fff;
       margin-bottom: 1.25rem;
     }
-    h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; }
-    p  { margin-top: 0.5rem; font-size: 0.9rem; line-height: 1.55; color: var(--muted); }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    p {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
     button {
       margin-top: 1.5rem;
       display: inline-flex;
@@ -72,18 +97,30 @@
       cursor: pointer;
       transition: background-color 150ms ease;
     }
-    button:hover { background: #1d4fd8; }
-    button:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.3); }
-    .hint { margin-top: 1.25rem; font-size: 0.75rem; color: #a1a1aa; }
+
+    button:hover {
+      background: #1d4fd8;
+    }
+
+    button:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.3);
+    }
+
+    .hint {
+      margin-top: 1.25rem;
+      font-size: 0.75rem;
+      color: #a1a1aa;
+    }
   </style>
 </head>
+
 <body>
   <main class="card">
     <span class="mark" aria-hidden="true">
       <!-- Brand mark: swap arrows -->
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-           stroke="currentColor" stroke-width="2" stroke-linecap="round"
-           stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
         <path d="m16 3 4 4-4 4" />
         <path d="M20 7H4" />
         <path d="m8 21-4-4 4-4" />
@@ -92,21 +129,35 @@
     </span>
     <h1>You're offline</h1>
     <p>SkillSwap needs an internet connection to load this page.<br />
-       Your previously synced data is safe.</p>
+      Your previously synced data is safe.</p>
     <button type="button" id="retry">Try again</button>
-    <p class="hint">Tip: pages you visited recently may still be available<br />from the app's back navigation.</p>
+    <p class="hint" id="retryNote" aria-live="polite">Tip: pages you visited recently may still be available<br />from the app's back navigation.</p>
   </main>
 
   <script>
-    // Reload the current URL when retrying; if history state is unavailable,
-    // fall back to navigating to the app start page.
-    document.getElementById('retry').addEventListener('click', function () {
-      if (window.history && window.history.length > 1) {
-        window.location.reload();
+    // Retry only makes sense once the browser is actually back online — while
+    // offline a reload just collapses into the same failed navigation and can
+    // spin the user in a useless loop. Show a live "still offline" note instead.
+    var retry = document.getElementById('retry');
+    var note = document.getElementById('retryNote');
+    retry.addEventListener('click', function () {
+      if (navigator.onLine) {
+        if (window.history && window.history.length > 1) {
+          window.location.reload();
+        } else {
+          window.location.assign('/');
+        }
       } else {
-        window.location.assign('/');
+        note.textContent = 'Still offline — check your connection and try again.';
+        if (window.navigator.vibrate) window.navigator.vibrate(60);
       }
+    });
+    // Re-enable the button the moment connectivity returns, even without a tap.
+    window.addEventListener('online', function () {
+      note.textContent = 'Back online — retrying now…';
+      setTimeout(function () { window.location.reload(); }, 600);
     });
   </script>
 </body>
+
 </html>

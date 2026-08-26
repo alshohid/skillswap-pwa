@@ -8,6 +8,7 @@ import {
 import { API_URL, TOKEN_STORAGE_KEY } from '@/lib/constants';
 import { clearAuth } from '@/store/slices/authSlice';
 import { reportApiFailure, reportApiSuccess } from '@/lib/connectivity';
+import { clearApiRuntimeCache } from '@/lib/sw-runtime';
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_URL,
@@ -44,6 +45,9 @@ export const baseQuery: BaseQueryFn<
     );
     if (!isAuthCall) {
       api.dispatch(clearAuth());
+      // Session token is gone → purge that user's cached API responses too
+      // so a later account on this device can't read financial data offline.
+      clearApiRuntimeCache();
       if (
         typeof window !== 'undefined' &&
         !window.location.pathname.startsWith('/login')

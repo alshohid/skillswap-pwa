@@ -6,6 +6,7 @@ import { api } from '@/store/api/baseApi';
 import { setCredentials, setUser, clearAuth } from '@/store/slices/authSlice';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { clearStoredSession, storeSession } from '@/lib/session';
+import { clearApiRuntimeCache } from '@/lib/sw-runtime';
 import { useGetMeQuery } from '@/store/api/authApi';
 import type { User } from '@/types/api';
 
@@ -45,6 +46,9 @@ export function useAuth() {
     clearStoredSession();
     dispatch(clearAuth());
     dispatch(api.util.resetApiState());
+    // Wipe user-specific (financial) API responses from the SW runtime cache so
+    // the next account on a shared device can never read them offline (§10).
+    clearApiRuntimeCache();
     router.replace('/login');
   }, [dispatch, router]);
 

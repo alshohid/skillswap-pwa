@@ -29,8 +29,19 @@ const apiBase = (
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api'
 ).replace(/\/+$/, '');
 
+// Next writes a unique id per production build at .next/BUILD_ID. Reusing it as
+// the SW's runtime-cache version (§12) means every deployment invalidates the
+// old page/image/API caches — no stale-HTML/new-JS drift across deploys.
+// Falls back to a timestamp so the build never fails offline/non-standard.
+let buildId = '';
 try {
-  console.log('[build-sw] bundling src/sw.ts …');
+  buildId = (await readFile(path.join(root, '.next', 'BUILD_ID'), 'utf8')).trim();
+} catch {
+  buildId = `manual-${Date.now().toString(36)}`;
+}
+
+try {
+  console.log(`[build-sw] bundling src/sw.ts (build_id=${buildId}) …`);
   await rm(tmpDir, { recursive: true, force: true });
   await build({
     entryPoints: [path.join(root, 'src', 'sw.ts')],
@@ -42,6 +53,7 @@ try {
     define: {
       'process.env.NODE_ENV': '"production"',
       __API_BASE__: JSON.stringify(apiBase),
+      __BUILD_ID__: JSON.stringify(buildId),
     },
     logLevel: 'warning',
   });
